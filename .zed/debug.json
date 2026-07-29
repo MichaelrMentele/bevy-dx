@@ -1,0 +1,14 @@
+// Committed debug launch config: cmd-shift-p → "debugger: start" → pick this.
+[
+  {
+    "label": "Debug Bevy",
+    "adapter": "CodeLLDB",
+    "request": "launch",
+    "program": "$ZED_WORKTREE_ROOT/target/debug/bevy-dx",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "build": {
+      "command": "cargo",
+      "args": ["build", "--features", "dev"]
+    }
+  }
+]

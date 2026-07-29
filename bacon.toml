@@ -1,0 +1,9 @@
+default_job = "clippy-all"
+
+# Match the justfile's test invocation
+[jobs.test]
+command = ["cargo", "nextest", "run", "--no-tests=pass", "--color", "always"]
+need_stdout = true
+
+[keybindings]
+t = "job:test"

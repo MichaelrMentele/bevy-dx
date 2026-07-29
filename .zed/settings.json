@@ -1,0 +1,20 @@
+{
+  // diff hygiene — no whitespace churn in reviews
+  "remove_trailing_whitespace_on_save": true,
+  "ensure_final_newline_on_save": true,
+  "languages": {
+    "Rust": {
+      "format_on_save": "on"
+    }
+  },
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        // inline clippy lints as you type, not just compile errors
+        "check": { "command": "clippy" },
+        // own target dir (no build-lock stalls vs cargo/bacon) + analyze dev-gated code
+        "cargo": { "targetDir": true, "features": ["dev"] }
+      }
+    }
+  }
+}

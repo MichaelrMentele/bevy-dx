@@ -1,0 +1,11 @@
+# Lint *configuration* (levels live in Cargo.toml [lints.clippy])
+
+# unwrap/expect are fine in tests
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+
+# Determinism policy: all randomness flows through a seeded RNG resource
+disallowed-methods = [
+    { path = "rand::thread_rng", reason = "use the seeded RNG resource (determinism policy)" },
+    { path = "rand::random", reason = "use the seeded RNG resource (determinism policy)" },
+]

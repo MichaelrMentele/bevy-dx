@@ -1,0 +1,67 @@
+[package]
+name = "bevy-dx"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[dependencies]
+bevy = { version = "0.19.0" }
+avian3d = { version = "0.7.0", default-features = false, features = [
+    "3d",
+    "f32",
+    "parry-f32",
+    "default-collider",
+    "enhanced-determinism", # bit-for-bit reproducible physics (excludes simd/parallel)
+    "serialize",            # save/replay physics state
+] }
+bevy-inspector-egui = { version = "0.37.0", optional = true }
+ron = "0.12.2"
+serde = { version = "1.0.229", features = ["derive"] }
+
+# Dev-only capabilities — never in a release build.
+# All dev loops pass --features dev (see justfile); release builds get a binary
+# with no file watcher, no patching hooks, and (later) no inspector.
+[features]
+dev = [
+    "bevy/file_watcher",     # asset hot reload
+    "bevy/hotpatching",      # dx serve --hot-patch
+    "bevy/bevy_dev_tools",   # FPS overlay + debug helpers
+    "dep:bevy-inspector-egui", # live world inspector (toggle: backtick)
+    "bevy/bevy_remote",      # BRP: query/mutate the running world over HTTP
+    "avian3d/debug-plugin",  # collider/contact wireframes — never in release
+]
+
+# Maximum strictness
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+# restriction cherry-picks (never enable the whole group)
+unwrap_used = "warn"       # error policy: systems return Result, no unwrap
+expect_used = "warn"
+print_stdout = "warn"      # logging policy: tracing macros only
+print_stderr = "warn"
+dbg_macro = "warn"
+# Bevy-idiom exceptions — these fire on correct Bevy code
+needless_pass_by_value = "allow" # systems take Res<T>/Query by value by design
+type_complexity = "allow"        # query types are legitimately gnarly
+
+# Fast iterative builds: light optimization for our code, full for dependencies
+# (deps compile once, then incremental rebuilds only touch our crate)
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
+debug = false # deps' debug info is most of target/'s bulk; step-debugging our code is unaffected
+
+# Runtime-optimized + crash-reportable
+[profile.release]
+lto = "thin"                # cross-crate inlining
+codegen-units = 1           # better optimization, slower compile
+debug = "line-tables-only"  # file:line in backtraces, no full debuginfo
+
+# Shipping build strip symbols — they should live in
+# the crash aggregator not the binary
+[profile.dist]
+inherits = "release"
+strip = "symbols"

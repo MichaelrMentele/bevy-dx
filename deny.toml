@@ -1,0 +1,22 @@
+# Supply-chain policy (`just audit`). Only non-default settings live here —
+# full option reference: https://embarkstudios.github.io/cargo-deny/
+
+[advisories]
+# unmaintained *transitive* deps (e.g. ttf-parser via Bevy) warn instead of
+# fail — upstream owns that fix; advisories on direct deps still fail
+unmaintained = "workspace"
+
+[licenses]
+# what we accept shipping; extend deliberately when a new dep needs it
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "CC0-1.0",
+    "Unicode-3.0",
+]

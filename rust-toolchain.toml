@@ -1,0 +1,8 @@
+[toolchain]
+channel = "1.95.0"
+components = [
+    "clippy",     # linter (bacon, CI)
+    "rustfmt",    # formatter (on-save, CI)
+    "rust-src",   # stdlib source — rust-analyzer completion/goto into std
+    "llvm-tools", # required by cargo-llvm-cov
+]

@@ -1,0 +1,60 @@
+# MERGE ring: the same gate as the pre-commit hook, on a clean machine.
+# The LLM gates (smells/review) no-op here — nothing is staged in CI; PR-diff
+# LLM review is a future step (Claude Code GitHub Action + ANTHROPIC_API_KEY).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps (Bevy on Linux)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+
+      - name: Toolchain (from rust-toolchain.toml)
+        run: rustup show active-toolchain
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just,cargo-nextest,cargo-deny,cargo-machete,cargo-binstall
+
+      - name: bevy_lint (own pinned nightly; cached by rust-cache)
+        run: |
+          cargo binstall -y --git https://github.com/TheBevyFlock/bevy_cli --version 0.1.0-alpha.2 --locked bevy_cli
+          bevy lint install main --yes
+
+      - name: Gate
+        run: just precommit
+
+      - name: Release + dist profile checks
+        run: |
+          cargo check --release
+          cargo check --profile dist
+
+  # Full dist build in parallel: `check` skips codegen, so only a real build
+  # exercises LTO + linking + symbol stripping — the actual "can we ship" test
+  dist-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: System deps (Bevy on Linux)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+      - name: Toolchain (from rust-toolchain.toml)
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: dist
+      - name: Build shipping binary
+        run: cargo build --profile dist

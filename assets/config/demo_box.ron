@@ -1,0 +1,5 @@
+// Hot-reloaded tunables: edit while `just run` — the box updates instantly.
+(
+    speed: 2.0,
+    range: 4.0, // world units: box sweeps ±4 across the 20-unit ground
+)

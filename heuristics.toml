@@ -1,0 +1,66 @@
+# Smells registry — judgment-call rules a mechanical linter can't check, enforced by LLM/human review (locally via /code-review, in CI).
+#
+# Scope rule: if a check can be stated as a pattern over syntax, it belongs in Cargo.toml [lints.clippy] / clippy.toml — NOT here. This registry is only for
+# rules that need intent: role, future, boundary, meaning.
+#
+# Each rule: what to check, why it matters, what the smell looks like.
+
+[[rule]]
+id = "sim-in-fixed-update"
+rule = "Simulation logic in FixedUpdate, presentation in Update"
+why = "Fixed ticks make sim behavior frame-rate independent and exactly replayable (determinism -> replayable crashes, exact tests)."
+smell = "Movement/physics/spawning/damage logic in an Update system; multiplying by Time::delta_secs() to fake rate-independence."
+
+[[rule]]
+id = "marker-queries"
+rule = "Query gameplay entities by marker component, never by rendering components"
+why = "With<Sprite> selects everything drawn and silently breaks as the world grows; markers state intent and keep tests precise."
+smell = "With<Sprite>, With<Mesh2d>, With<Transform> as the only filter selecting 'the player' / 'enemies' / etc."
+
+[[rule]]
+id = "no-magic-numbers"
+rule = "No magic numbers in system bodies — promote tunables to data"
+why = "Numbers tuned more than twice belong in hot-reloaded data (assets/config/*.ron) so iteration is zero-rebuild."
+smell = "Bare numeric literals for speeds, ranges, cooldowns, spawn rates; the same constant appearing in two systems."
+
+[[rule]]
+id = "behavior-not-wiring"
+rule = "Behavior in system bodies and data, not in app wiring"
+why = "Hotpatch only swaps function bodies that get called again — logic in build() or main() lands on the slow restart rung."
+smell = "Branching/config logic inside Plugin::build; a growing main.rs (must stay ~3 lines: App + GamePlugin)."
+
+[[rule]]
+id = "errors-handled-not-silenced"
+rule = "Systems return Result; failed lookups are handled meaningfully, not silenced"
+why = "'The entity isn't there this frame' is a normal timing case, not a crash. Dev panics on error, release logs and continues."
+smell = "unwrap/expect on queries in non-test code (clippy catches the call — review the design); reflexive `let Ok(..) else { return }` that swallows cases that were actually bugs."
+
+[[rule]]
+id = "seeded-rng-only"
+rule = "All randomness flows through the seeded RNG resource"
+why = "Determinism: same seed must reproduce the same run."
+smell = "Any RNG constructed inside a system; entropy smuggled from time, entity ids, or addresses. (thread_rng/random are mechanically banned; catch the creative workarounds.)"
+
+[[rule]]
+id = "log-levels-mean-things"
+rule = "Logging levels carry semantics: error=bug, warn=recoverable, info=rare lifecycle, debug/trace=per-frame"
+why = "Logs are the observability layer crash reports and profiling hang off; wrong levels make them unusable."
+smell = "info! inside a per-frame loop; error! for expected conditions; log lines with no context values."
+
+[[rule]]
+id = "plugin-per-concern"
+rule = "One plugin per concern; plugins own their systems, components, and config"
+why = "The Plugin is the unit of composition, testability, and reuse."
+smell = "A grab-bag plugin adding unrelated systems; one plugin mutating another's components directly where an event would express the contract."
+
+[[rule]]
+id = "test-the-real-claim"
+rule = "Tests assert behavior through public API; keep the query/command split (Sandi Metz)"
+why = "Tests coupled to private internals or incidental values rot fast."
+smell = "Tests reaching into private fields; asserting exact floats where the real claim is a property (bounded, monotonic, unchanged)."
+
+[[rule]]
+id = "dev-tools-gated"
+rule = "Dev tooling stays behind the `dev` cargo feature"
+why = "Inspectors/gizmos/debug UI must not ship in release builds."
+smell = "Unconditional add_plugins(inspector); debug keybindings compiled into release."

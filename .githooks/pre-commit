@@ -1,0 +1,3 @@
+#!/bin/sh
+# Fast checks only — anything slow trains `--no-verify`. Heavy gates live in CI.
+just precommit
