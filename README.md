@@ -32,19 +32,6 @@ The goal of this repo is to provide an authoritative example of an optimal Bevy 
 ╰──────────────────────────────────────────────────────────╯
 ```
 
-## Workflow
-
-You have a new feature or outcome you are working to achieve. Hopefully, the task definition clearly outlines testable end outcomes. For example, you are adding a login feature. This login feature is a critical flow that must not fail.
-
-There are several ways we can ensure it always works:
-- unit tests per module (good & cheap)
-- an app level unit test (good & cheap)
-- remote test over BRP (???)
-- simulated user (best but slow and flaky)
-- manually on every release (not feasible)
-
-TODO: tutorial on e2e TDD for making various components
-
 ## How to use this template
 
 1. Clone (TODO once on GitHub: `bevy new my_game --template gh:<repo>`), rename the crate in `Cargo.toml`
@@ -90,11 +77,7 @@ LICENSE               # MIT
 
 *The inner loop (ms–5s)*
 
-The overall workflow for creating features is to start from the outside and work inwards in a DFS type manner using TDD.
-
 ### Setup
-
-The first step for any devX is reproduceability. We need to install and get everything running.
 
 - `rust-toolchain.toml` + committed `Cargo.lock` — pins the rust toolchain
 - one-time tool installs (recipes live in the `justfile`):
@@ -112,16 +95,10 @@ The first step for any devX is reproduceability. We need to install and get ever
   - `check.command: "clippy"` — inline lints, not just compile errors
   - `cargo.targetDir: true` — own target dir, no build-lock stalls vs cargo/bacon
   - `cargo.features: ["dev"]` — analyze dev-gated code too
-- step debugging (LLDB) — built into Zed, works on dev builds:
-  1. click the gutter to set a breakpoint (e.g. in `move_box`)
-  2. `cmd-shift-p` → "debugger: start" → pick "Debug bevy-dx (dev features)"
-     (committed launch config in `.zed/debug.json` — builds with the dev
-     feature so the inspector is available while stepping)
-  3. game freezes on hit — inspect variables, step over/into, continue
-  - per-frame breakpoints retrigger every frame — right-click the dot and add
-    a condition (e.g. `time.elapsed_secs() > 3.0`)
-  - calmer variant: debug a test — gutter play icon next to any `#[test]` → Debug. Headless and deterministic
-  - **not compatible with `just run` (dx owns that process) — debugging is a separate launch, no hotpatching**
+- step debugging (LLDB) — launch config committed in `.zed/debug.json` (builds with `dev`)
+  - per-frame breakpoints retrigger every frame — add a condition (e.g. `time.elapsed_secs() > 3.0`)
+  - calmer variant: debug a `#[test]` via its gutter icon — headless, deterministic
+  - **separate launch from `just run` (dx owns that process) — no hotpatching while debugging**
 
 ### Hot Reloading
 - hot patching (dx serve --hot-patch)
@@ -154,11 +131,8 @@ The first step for any devX is reproduceability. We need to install and get ever
   restriction cherry-picks (`unwrap_used`, `print_stdout`, ...), Bevy-idiom allows
   (`needless_pass_by_value`, `type_complexity`); lint *config* in `clippy.toml`
   (`disallowed-methods` rand ban, unwrap-ok-in-tests)
-- bevy_lint — Bevy-semantic lints (panicking query methods, unit bundles, ...).
-  Wired into `just lint` (so `precommit` runs it too). Installed by `just setup`
-  from the main branch (`bevy lint install main` — v0.7.0-dev; the released
-  version targets Bevy 0.18, main handles 0.19). Uses its own pinned nightly,
-  separate from the repo's stable toolchain.
+- bevy_lint — Bevy-semantic lints (panicking query methods, unit bundles, ...), in `just lint`.
+  Installed from main by `just setup` (released version lags Bevy; own pinned nightly)
 
 ### Testing
 
@@ -168,9 +142,11 @@ Two boundaries — each has a live example in this repo:
    surface as behavior failures; never assert configuration (tautologies).
    Pure functions get doctests (`box_x`). Shipped data gets a parseability
    test (`shipped_config_ron_parses` — a broken RON fails silently at runtime).
-2. `tests/` = black box only: nothing here touches internals.
-   - `tests/internal-remotes/` — spawn the binary, drive BRP (placeholder)
-   - `tests/user/` — SOPs for human/agent play (release ring)
+2. `tests/` = black box only: the build is an artifact, not a library.
+   - `tests/internal-remotes/` (placeholder) — spawn the binary, drive BRP, assert, kill.
+     TODO: the `game/*` facade tests speak (contract, never raw queries).
+     Agents use the same door; multiplayer = N instances, one port each
+   - `tests/user/` — SOPs for human/agent play; computer-use agents later (release ring)
 
 Methodology:
 - Coverage ratchet — `just test` runs the suite instrumented and fails below
@@ -178,6 +154,7 @@ Methodology:
   moves up.
 - Test through public API with the query/command split — the rule is `test-the-real-claim` in `heuristics.toml`.
 - A TDD style workflow with agentic coding under those constraints is recommended.
+- TODO: tutorial on e2e TDD — pick the cheapest boundary that proves the claim
 
 ### Invariant Testing
 
@@ -197,19 +174,6 @@ Trends, not pass/fail — no assertion can own "fast enough" on shared hardware:
 - absolute budgets (FPS p95, RAM) validated on target hardware per release —
   these are the targets PRODUCTION's threshold alerts compare against
 
-### Remote Interaction Testing (proposed)
-
-Drive the real running build from outside the process — the build is an
-artifact, not a library.
-- harness home: `tests/internal-remotes/` (placeholder) — spawn the binary,
-  drive BRP, assert, kill. TODO: the `game/*` BRP facade it should speak
-  (contract, never raw component queries)
-- agents use the same door — play, inspect, file reproducible findings
-- multiplayer: N instances, one BRP port each; harness cross-checks sync
-- user-level SOPs live in `tests/user/` — manual today, computer-use agents
-  later (release ring)
-
-
 ## COMMIT
 *The local gate (seconds)*
 
@@ -217,49 +181,24 @@ artifact, not a library.
 - `just smells` — conventions oracle: checks the diff against `heuristics.toml`
 - `just review` — pre-view of PR code review
 
-## MERGE (CI)
+## MERGE (TODO)
 *Merge to main checks (minutes)*
 
-- TODO: branch protection — required CI check + allow auto-merge (GitHub settings, push day)
-- CI pipeline (`.github/workflows/ci.yml`): `just precommit` on a clean machine
-- automated version bumps — `.github/dependabot.yml`
-- matrix build profiles (Cargo.toml):
-  - `release` = optimized + line-tables so crash backtraces stay symbolicated
-  - `dist` = release + stripped, for shipping once
-  symbols upload to the crash aggregator.
-  - Dev features never in either.
-- User simulation & manual QA (proposed)
-  - run the app through the window as a user would
-  - Local manual for now
-  - the ambition is VLM agents running SOPs for key paths - fully black box
-
-## Release
+## RELEASE (TODO)
 
 **From main to users machines.**
 
-## PRODUCTION
+## PRODUCTION (TODO)
 *The product return loop — all TODO: nothing below is built yet (ship-time work)*
 
-Production feeds DEV three ways:
-- a crash ships home its seed + input log and replays deterministically as a failing test
-- a diagnostics threshold crossed (FPS percentile, memory) opens a perf regression with the offending build pinned
-- player feedback can be promoted to playtest scenarios
-
-Systems:
-- Crash reporting — panic hook → crash file + recent log lines; Sentry for aggregation
-- Diagnostics reporting (opt-in)
-  - usage
-  - performance
-- **Closing the loop** — three channels feed PRODUCTION signal back into DEV:
-  - crash → seed + input log replays exactly (determinism) → failing test →
-    fix passes back through every gate; that class of bug can never ship again
-  - diagnostics threshold crossed (FPS p95 below target, memory creep, load-time
-    regression) → alert with the offending build/commit range pinned → perf
-    investigation lands as a criterion bench or budget test, so the regression
-    is now gated
-  - player feedback (reports, reviews, telemetry patterns like quit-points) →
-    triaged into playtest scenarios and design changes — the only channel a
-    machine can't fully close; a human decides what it means
+Three channels feed signal back into DEV:
+- **crashes** — panic hook ships seed + input log (Sentry aggregates);
+  determinism replays it as a failing test, so that bug class can't ship again
+- **diagnostics** (opt-in) — threshold crossed (FPS p95, memory, load time)
+  opens a regression with the offending build pinned; the fix lands as a bench
+  or budget test, so it's now gated
+- **player feedback** — reports/reviews/telemetry triaged into playtest
+  scenarios; the one channel a human must close
 
 ## References
 
