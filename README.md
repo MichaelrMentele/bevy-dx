@@ -32,6 +32,10 @@ The goal of this repo is to provide an authoritative example of an optimal Bevy 
 ╰──────────────────────────────────────────────────────────╯
 ```
 
+Status: DEV and COMMIT are built and live in this repo. MERGE (CI),
+RELEASE, and PRODUCTION are planned — the diagram shows the target,
+not the current state.
+
 ## How to use this template
 
 1. Clone (TODO once on GitHub: `bevy new my_game --template gh:<repo>`), rename the crate in `Cargo.toml`
@@ -69,8 +73,6 @@ LICENSE               # MIT
 .zed/settings.json    # project editor settings: format-on-save, clippy inline, own target dir
 .zed/debug.json       # step-debug launch config (builds with --features dev)
 .githooks/pre-commit  # runs `just precommit` (enabled by `just setup` via core.hooksPath)
-.github/workflows/    # CI: `just precommit` on a clean machine (MERGE ring)
-.github/dependabot.yml # automated dependency bumps
 ```
 
 ## DEV
@@ -164,11 +166,11 @@ and exploit the outcome:
 - TODO Schedule ambiguity detection — `Warn` in dev runs, `Error` in test apps
 - TODO determinism test: same seed + N ticks → identical world snapshot
 - TODO Property-based testing (proptest) — e.g. "any seed produces a valid, connected map"
-- Fuzz testing (proposed)
+- Fuzz testing (planned)
   - cargo-fuzz on parse boundaries (save files, config RON, network messages)
   - monkey testing — seeded random input streams for thousands of ticks; assert no panic, no NaN positions, no stuck states; failing stream = replayable repro
 
-### Performance (proposed)
+### Performance (planned — not implemented)
 Trends, not pass/fail — no assertion can own "fast enough" on shared hardware:
 - criterion benches on hot systems — relative regression vs saved baseline (CI-safe)
 - absolute budgets (FPS p95, RAM) validated on target hardware per release —
@@ -181,15 +183,18 @@ Trends, not pass/fail — no assertion can own "fast enough" on shared hardware:
 - `just smells` — conventions oracle: checks the diff against `heuristics.toml`
 - `just review` — pre-view of PR code review
 
-## MERGE (TODO)
+## MERGE (planned — not implemented)
 *Merge to main checks (minutes)*
 
-## RELEASE (TODO)
+The intent: CI runs the same `just precommit` gate on a clean machine, plus
+release build and `cargo deny`. No workflow exists yet.
+
+## RELEASE (planned — not implemented)
 
 **From main to users machines.**
 
-## PRODUCTION (TODO)
-*The product return loop — all TODO: nothing below is built yet (ship-time work)*
+## PRODUCTION (planned — not implemented)
+*The product return loop — nothing below is built yet (ship-time work)*
 
 Three channels feed signal back into DEV:
 - **crashes** — panic hook ships seed + input log (Sentry aggregates);

@@ -52,7 +52,7 @@ audit:
     cargo deny check
     cargo machete
 
-# Exhaustive gate (called by .githooks/pre-commit; mirrors CI)
+# Exhaustive gate (called by .githooks/pre-commit; CI will run the same gate once the MERGE ring exists)
 precommit: lint test audit smells review
 
 run:
