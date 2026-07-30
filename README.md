@@ -38,7 +38,7 @@ not the current state.
 
 ## How to use this template
 
-1. Clone (TODO once on GitHub: `bevy new my_game --template gh:<repo>`), rename the crate in `Cargo.toml`
+1. `bevy new my_game --template gh:MichaelrMentele/bevy-dx` (or clone), rename the crate in `Cargo.toml`
 2. `cargo install just && just setup` — tools, toolchain, git hooks
 3. Try and then delete the demos: everything below the `DELETABLE` fence in the `justfile`,
    the demo assets (`assets/images/box*.png`, `assets/config/demo_box.ron`), and the
